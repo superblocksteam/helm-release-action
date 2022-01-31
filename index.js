@@ -48,6 +48,7 @@ function push() {
     'push',
     releaseFile,
     REPO_ALIAS,
+    '--relative'
   ];
   
   const forceRelease = core.getInput('forceRelease', { required: true }) === 'true';
