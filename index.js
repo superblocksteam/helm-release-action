@@ -13,12 +13,7 @@ function repo() {
     required: true,
   });
 
-  return [
-    'repo',
-    'add',
-    REPO_ALIAS,
-    repo,
-  ];
+  return ['repo', 'add', REPO_ALIAS, repo];
 }
 
 // Returns argument required to generate the chart package.
@@ -31,7 +26,7 @@ function package() {
     RELEASE_DIR,
     ...core.getInput('packageExtraArgs').split(/\s+/),
   ];
-  
+
   const version = core.getInput('version');
   if (version) {
     args.push('--version', version);
@@ -43,14 +38,8 @@ function package() {
 // Returns argument required to push the chart release to S3 repository.
 function push() {
   const releaseFile = path.join(RELEASE_DIR, fs.readdirSync(RELEASE_DIR)[0]);
-  const args = [
-    's3',
-    'push',
-    releaseFile,
-    REPO_ALIAS,
-    '--relative'
-  ];
-  
+  const args = ['s3', 'push', releaseFile, REPO_ALIAS, '--relative'];
+
   const forceRelease = core.getInput('forceRelease', { required: true }) === 'true';
   if (forceRelease) {
     args.push('--force');
@@ -64,19 +53,21 @@ function push() {
 // Returns argument required to install helm-s3 and helm-pack plugins.
 function installPlugins() {
   const plugins = [
-    'https://github.com/hypnoglow/helm-s3.git',
-    'https://github.com/thynquest/helm-pack.git',
+    { url: 'https://github.com/hypnoglow/helm-s3.git', version: 'v0.12.0' },
+    { url: 'https://github.com/thynquest/helm-pack.git', version: 'v0.2.2' },
   ];
 
-  return Promise.all(plugins.map(plugin => exec.exec(HELM, ['plugin', 'install', plugin])));
+  return Promise.all(
+    plugins.map((plugin) =>
+      exec.exec(HELM, ['plugin', 'install', plugin.url, '--version', plugin.version])
+    )
+  );
 }
 
 async function main() {
   try {
     await installPlugins();
-    await exec.exec(HELM, repo()),
-    await exec.exec(HELM, package()),
-    await exec.exec(HELM, push())
+    await exec.exec(HELM, repo()), await exec.exec(HELM, package()), await exec.exec(HELM, push());
   } catch (err) {
     core.error(err);
     core.setFailed(err.message);
